@@ -15,25 +15,43 @@ import java.util.Optional;
 public class UserService implements UserDetailsService {
 
     private final UserRepository userRepository;
-    private final PasswordEncoder passwordEncoder; // ✅ Inject PasswordEncoder directly
+    private final PasswordEncoder passwordEncoder;
 
+    // ✅ Constructor-based Dependency Injection
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
     }
 
+    /**
+     * Registers a new user with encrypted password.
+     * @param request Contains username, email, and password.
+     * @return Success message if registration is successful.
+     */
     public String registerUser(RegisterRequest request) {
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
             throw new IllegalArgumentException("Username already exists!");
         }
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setEmail(request.getEmail());
-        user.setPassword(passwordEncoder.encode(request.getPassword())); // ✅ Hash password
+        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+            throw new IllegalArgumentException("Email is already in use!");
+        }
+
+        User user = new User(
+                request.getUsername(),
+                request.getEmail(),
+                passwordEncoder.encode(request.getPassword())  // ✅ Hash password before saving
+        );
+
         userRepository.save(user);
         return "User registered successfully!";
     }
 
+    /**
+     * Loads user details by username for authentication.
+     * @param username The username to search for.
+     * @return UserDetails object for authentication.
+     * @throws UsernameNotFoundException if the user is not found.
+     */
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         User user = userRepository.findByUsername(username)
@@ -41,7 +59,7 @@ public class UserService implements UserDetailsService {
 
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getUsername())
-                .password(user.getPassword())
+                .password(user.getPassword())  // ✅ Already hashed
                 .authorities("USER")
                 .build();
     }

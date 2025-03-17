@@ -1,14 +1,13 @@
 package com.pranav.microservices.backend_chatapp.service;
 
-import com.pranav.microservices.backend_chatapp.model.Chat;
 import com.pranav.microservices.backend_chatapp.model.Message;
-import com.pranav.microservices.backend_chatapp.repository.ChatRepository;
+import com.pranav.microservices.backend_chatapp.model.User;
 import com.pranav.microservices.backend_chatapp.repository.MessageRepository;
+import com.pranav.microservices.backend_chatapp.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 
 @Service
 public class MessageService {
@@ -17,10 +16,20 @@ public class MessageService {
     private MessageRepository messageRepository;
 
     @Autowired
-    private ChatRepository chatRepository;
+    private UserRepository userRepository;
 
-    public List<Message> getChatMessages(Long chatId) {
-        Optional<Chat> chat = chatRepository.findById(chatId);
-        return chat.map(messageRepository::findByChat).orElse(null);
+    // ✅ Corrected Method: Fetch Messages Using `User` Objects
+    public List<Message> getChatMessages(String senderUsername, String receiverUsername) {
+        User sender = userRepository.findByUsername(senderUsername)
+                .orElseThrow(() -> new RuntimeException("Sender not found"));
+
+        User receiver = userRepository.findByUsername(receiverUsername)
+                .orElseThrow(() -> new RuntimeException("Receiver not found"));
+
+        return messageRepository.findBySenderAndReceiverOrReceiverAndSender(sender, receiver, receiver, sender);
+    }
+
+    public void saveMessage(Message message) {
+        messageRepository.save(message);
     }
 }

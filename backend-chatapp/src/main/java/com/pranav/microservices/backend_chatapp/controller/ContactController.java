@@ -9,6 +9,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/contacts")
+@CrossOrigin
 public class ContactController {
 
     @Autowired
